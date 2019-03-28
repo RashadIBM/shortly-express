@@ -90,9 +90,38 @@ app.post('/signup', (req, res) => {
     });
 });
 
-// app.get('/login', (req, res) => {
-//   res.render('login');
-// });
+app.post('/login', (req, res) => {
+
+  let username =  req.body.username;
+  let attempted = req.body.password;
+
+  return models.Users.get({
+    username,
+  })
+  .then((result) => {
+    if (models.Users.compare(attempted, result.password, result.salt)) {
+      res.location('/');
+      res.send();
+    } else {
+      res.location('/login');
+      res.send();
+    }
+  })
+  .catch((err) => {
+    res.location('/login');
+    res.send();
+  })
+
+
+});
+
+
+
+
+
+
+
+
 
 /************************************************************/
 // Handle the code parameter route last - if all other routes fail
