@@ -15,40 +15,25 @@ app.use(bodyParser.json());
 app.use(bodyParser.urlencoded({ extended: true }));
 app.use(express.static(path.join(__dirname, '../public')));
 
-
-
-app.get('/',
-(req, res) => {
+app.get('/', (req, res) => {
   res.render('index');
 });
 
-app.get('/create',
-(req, res) => {
+app.get('/create', (req, res) => {
   res.render('index');
 });
 
-app.get('/links',
-(req, res, next) => {
+app.get('/links', (req, res, next) => {
   models.Links.getAll()
-    .then(links => {
+    .then((links) => {
       res.status(200).send(links);
     })
-    .error(error => {
+    .error((error) => {
       res.status(500).send(error);
     });
 });
 
-// app.get('/signup',
-// (req, res) => {
-//   res.render('index');
-// });
-
-// app.post('/signup', (req, res) => {
-//   res.render('/signup')
-// });
-
-app.post('/links',
-(req, res, next) => {
+app.post('/links', (req, res, next) => {
   var url = req.body.url;
   if (!models.Links.isValidUrl(url)) {
     // send back a 404 if link is not valid
@@ -56,29 +41,29 @@ app.post('/links',
   }
 
   return models.Links.get({ url })
-    .then(link => {
+    .then((link) => {
       if (link) {
         throw link;
       }
       return models.Links.getUrlTitle(url);
     })
-    .then(title => {
+    .then((title) => {
       return models.Links.create({
         url: url,
         title: title,
-        baseUrl: req.headers.origin
+        baseUrl: req.headers.origin,
       });
     })
-    .then(results => {
+    .then((results) => {
       return models.Links.get({ id: results.insertId });
     })
-    .then(link => {
+    .then((link) => {
       throw link;
     })
-    .error(error => {
+    .error((error) => {
       res.status(500).send(error);
     })
-    .catch(link => {
+    .catch((link) => {
       res.status(200).send(link);
     });
 });
@@ -87,7 +72,27 @@ app.post('/links',
 // Write your authentication routes here
 /************************************************************/
 
+app.post('/signup', (req, res) => {
+  let username = req.body.username;
+  let password = req.body.password;
 
+  return models.Users.create({
+    username: username,
+    password: password,
+  })
+    .then((results) => {
+      res.location('/');
+      res.send();
+    })
+    .catch((err) => {
+      res.location('/signup');
+      res.send();
+    });
+});
+
+// app.get('/login', (req, res) => {
+//   res.render('login');
+// });
 
 /************************************************************/
 // Handle the code parameter route last - if all other routes fail
@@ -96,22 +101,20 @@ app.post('/links',
 /************************************************************/
 
 app.get('/:code', (req, res, next) => {
-
   return models.Links.get({ code: req.params.code })
-    .tap(link => {
-
+    .tap((link) => {
       if (!link) {
         throw new Error('Link does not exist');
       }
       return models.Clicks.create({ linkId: link.id });
     })
-    .tap(link => {
+    .tap((link) => {
       return models.Links.update(link, { visits: link.visits + 1 });
     })
     .then(({ url }) => {
       res.redirect(url);
     })
-    .error(error => {
+    .error((error) => {
       res.status(500).send(error);
     })
     .catch(() => {
