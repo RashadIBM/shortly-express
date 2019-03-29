@@ -6,6 +6,7 @@ const bodyParser = require('body-parser');
 const Auth = require('./middleware/auth');
 const models = require('./models');
 
+
 const app = express();
 
 app.set('views', `${__dirname}/views`);
@@ -16,6 +17,9 @@ app.use(bodyParser.urlencoded({ extended: true }));
 app.use(express.static(path.join(__dirname, '../public')));
 
 app.get('/', (req, res) => {
+
+  console.log(res);
+
   res.render('index');
 });
 
