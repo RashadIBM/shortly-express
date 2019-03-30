@@ -9,25 +9,52 @@ var createSession = (req, res, next) => {
    *  3. Set new cookie => res.cookie()
    *  4. Else =>
    */
+  var loadHash = () => {
+    return new Promise((resolve, reject) => {
+      models.Sessions.create()
+        .then((successPacket) => {
+          // resolve(successPacket);
+          // Pass an options object to get the hash we just created
+          var options = {
+            id: successPacket.insertId
+          };
+          models.Sessions.get(options)
+            .then((results) => {
+              console.log('\n\nLoadHashComplete');
+              resolve(results.hash);
+              // req.session = {hash: results.hash};
+            });
+        });
+    });
+  };
+
   if (Object.keys(req.cookies).length) {
     req.session = {hash: 'Hmmm, wonder how this will be refactored'};
   } else {
-    models.Sessions.create()
-      .then((successPacket) => {
-        resolve(successPacket);
-        // Pass an options object to get the hash we just created
-        var options = {
-          id: successPacket.insertId
-        };
-        models.Sessions.get(options)
-          .then((results) => {
-            console.log('\n\n\n\n\n\n\n--->', results);
-            req.session = {hash: results.hash};
-          });
-      });
-
+    var hash = loadHash();
+    req.session = {hash};
   }
   next();
+
+  // if (Object.keys(req.cookies).length) {
+  //   req.session = {hash: 'Hmmm, wonder how this will be refactored'};
+  // } else {
+  //   models.Sessions.create()
+  //     .then((successPacket) => {
+  //       resolve(successPacket);
+  //       // Pass an options object to get the hash we just created
+  //       var options = {
+  //         id: successPacket.insertId
+  //       };
+  //       models.Sessions.get(options)
+  //         .then((results) => {
+  //           console.log('\n\n\n\n\n\n\n--->', results);
+  //           req.session = {hash: results.hash};
+  //         });
+  //     });
+
+  // }
+  // next();
 };
 
 createSession = Promise.promisify(createSession);
