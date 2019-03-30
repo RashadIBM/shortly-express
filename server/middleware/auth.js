@@ -2,35 +2,49 @@ const models = require('../models');
 const Promise = require('bluebird');
 
 module.exports.createSession = (req, res, next) => {
-  /**
-   *  1. Verify if any cookies are present
-   *  2. If none present then => initialize new session
-   *  3. Set new cookie => res.cookie()
-   *  4. Else =>
-   */
-  return new Promise((resolve, reject) => {
-    if (Object.keys(req.cookies).length) {
-      req.session = {hash: 'Hmmm, wonder how this will be refactored'};
-      resolve(req);
-      next();
-    } else {
-      models.Sessions.create()
-        .then((successPacket) => {
-          // Pass an options object to get the hash we just created
-          var options = {
-            id: successPacket.insertId
-          };
-          models.Sessions.get(options)
-            .then((results) => {
-              req.session = {hash: results.hash};
-              resolve(req);
+  if (!req.cookies || Object.keys(req.cookies).length === 0) {
+    models.Sessions.create()
+      .then(result => {
+        models.Sessions.get({ id: result.insertId }).then(result => {
+          req.session = result;
+
+          if (req.body.username) {
+            console.log('here');
+            models.Users.get({ username: req.body.username }).then(user => {
+              console.log('User:\n');
+              console.log(user);
+              // req.session.user = user;
+              // req.session.userId = user.id;
+            });
+          }
+
+          res.cookie('shortlyid', result.hash);
+          next();
+        });
+      })
+      .catch(err => {
+        console.log(err);
+      });
+  } else {
+    models.Sessions.get({ hash: req.cookies.shortlyid })
+      .then(result => {
+        if (result) {
+          req.session = result;
+          next();
+        } else {
+          models.Sessions.create().then(result => {
+            models.Sessions.get({ id: result.insertId }).then(result => {
+              req.session = result;
+              res.cookie('shortlyid', result.hash);
               next();
             });
-        });
-
-    }
-  });
-
+          });
+        }
+      })
+      .catch(err => {
+        console.log(err);
+      });
+  }
 };
 
 /************************************************************/

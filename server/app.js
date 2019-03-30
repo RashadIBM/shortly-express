@@ -16,11 +16,11 @@ app.use(bodyParser.json());
 app.use(bodyParser.urlencoded({ extended: true }));
 app.use(express.static(path.join(__dirname, '../public')));
 
-app.get('/', (req, res) => {
-
-  console.log(res);
+app.get('/', Auth.createSession, (req, res, next) => {
 
   res.render('index');
+  next();
+
 });
 
 app.get('/create', (req, res) => {
@@ -76,7 +76,7 @@ app.post('/links', (req, res, next) => {
 // Write your authentication routes here
 /************************************************************/
 
-app.post('/signup', (req, res) => {
+app.post('/signup', Auth.createSession, (req, res) => {
   let username = req.body.username;
   let password = req.body.password;
 
@@ -94,7 +94,7 @@ app.post('/signup', (req, res) => {
     });
 });
 
-app.post('/login', (req, res) => {
+app.post('/login', Auth.createSession, (req, res) => {
 
   let username = req.body.username;
   let attempted = req.body.password;
