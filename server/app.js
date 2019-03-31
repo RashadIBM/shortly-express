@@ -5,7 +5,7 @@ const partials = require('express-partials');
 const bodyParser = require('body-parser');
 const Auth = require('./middleware/auth');
 const models = require('./models');
-
+const cookieFn = require('./middleware/cookieParser');
 
 const app = express();
 
@@ -17,10 +17,19 @@ app.use(bodyParser.urlencoded({ extended: true }));
 app.use(express.static(path.join(__dirname, '../public')));
 
 app.get('/', Auth.createSession, (req, res, next) => {
-
+  /**
+   * Aim to remove Auth.createSession from line 19 & call below
+   * var isLoggedIn = models.Sessions.isLoggedIn(req.session);
+   * if (!isLoggedIn) {
+   *   res.redirect('/login');
+   * }
+   * Auth.createSession(req, res, next).then(() => {
+   *   res.render('index');
+   *   next();
+   * });
+   * */
   res.render('index');
   next();
-
 });
 
 app.get('/create', (req, res) => {
@@ -76,7 +85,7 @@ app.post('/links', (req, res, next) => {
 // Write your authentication routes here
 /************************************************************/
 
-app.post('/signup', Auth.createSession, (req, res) => {
+app.post('/signup', Auth.createSession, (req, res, next) => {
   let username = req.body.username;
   let password = req.body.password;
 
@@ -85,12 +94,19 @@ app.post('/signup', Auth.createSession, (req, res) => {
     password: password,
   })
     .then((results) => {
-      res.location('/');
-      res.send();
+      models.Sessions.update({ hash: req.session.hash }, { userId: results.insertId })
+        .then((stat) => {
+          // If successful session update then updated session userId cookie
+          if (stat.affectedRows) {
+            req.session.userId = results.insertId;
+          }
+          res.redirect('/');
+          next();
+        });
     })
     .catch((err) => {
-      res.location('/signup');
-      res.send();
+      res.redirect('/signup');
+
     });
 });
 
@@ -103,24 +119,41 @@ app.post('/login', Auth.createSession, (req, res) => {
     username,
   })
     .then((result) => {
+      // If login is successful then update session table
       if (models.Users.compare(attempted, result.password, result.salt)) {
-        res.location('/');
-        res.send();
+        models.Sessions.update({ hash: req.session.hash }, { userId: result.id })
+          .then((stat) => {
+            // If table session updates then update session userId cookie
+            if (stat.affectedRows) {
+              req.session.userId = result.id; //result.insertId  --> result.id
+              res.redirect('/');
+            } // Else session table was not updated so..
+          });
       } else {
-        res.location('/login');
-        res.send();
+        res.redirect('/login');
       }
     })
     .catch((err) => {
-      res.location('/login');
-      res.send();
+      res.redirect('/login');
     });
-
-
 });
 
-
-
+app.get('/logout', (req, res, next) => {
+  cookieFn(req, res, next);
+  models.Sessions.delete({ hash: req.cookies.shortlyid })
+    .then(() => {
+      // Upon deletion from table, also delete cookie
+      // Account for models.Sessions.isLoggedIn needs session.user ???
+      /**
+       * Will need to refactor req.session assigment as
+       * session.user needs to exist on this as well for
+       * isLoggedIn  albeit blank?? as it errors out since undefined
+       */
+      req.session = {};
+      console.log(req.session);
+      next();
+    });
+});
 
 
 
