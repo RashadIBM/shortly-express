@@ -76,7 +76,9 @@ app.post('/links', (req, res, next) => {
 // Write your authentication routes here
 /************************************************************/
 
-app.post('/signup', Auth.createSession, (req, res) => {
+app.post('/signup', Auth.createSession, (req, res, next) => {
+
+
   let username = req.body.username;
   let password = req.body.password;
 
@@ -85,8 +87,10 @@ app.post('/signup', Auth.createSession, (req, res) => {
     password: password,
   })
     .then((results) => {
-      res.location('/');
-      res.send();
+      models.Sessions.update({ hash: req.session.hash }, { userId: results.insertId })
+      .then(() => {
+        res.redirect('/');
+      })
     })
     .catch((err) => {
       res.location('/signup');
@@ -103,9 +107,13 @@ app.post('/login', Auth.createSession, (req, res) => {
     username,
   })
   .then((result) => {
+
     if (models.Users.compare(attempted, result.password, result.salt)) {
-      res.location('/');
-      res.send();
+      console.log(result);
+      models.Sessions.update({ hash: req.session.hash }, { userId: result.insertId })
+      .then(() => {
+        res.redirect('/');
+      })
     } else {
       res.location('/login');
       res.send();
@@ -115,8 +123,6 @@ app.post('/login', Auth.createSession, (req, res) => {
     res.location('/login');
     res.send();
   })
-
-
 });
 
 
