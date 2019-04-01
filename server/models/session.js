@@ -40,8 +40,6 @@ class Sessions extends Model {
           return session;
         }
         return Users.get({ id: session.userId }).then(user => {
-          console.log('Models.get w/ User Add\n');
-          console.log('User:', user);
           session.user = user;
           return session;
         });
