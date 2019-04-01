@@ -139,6 +139,7 @@ app.post('/login', Auth.createSession, (req, res) => {
           .then((stat) => {
             // If table session updates then update session userId cookie
             if (stat.affectedRows) {
+              req.session.user = { username: req.body.username };
               req.session.userId = result.id; //result.insertId  --> result.id
               res.redirect('/');
             } // Else session table was not updated so..
