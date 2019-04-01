@@ -17,33 +17,47 @@ app.use(bodyParser.urlencoded({ extended: true }));
 app.use(express.static(path.join(__dirname, '../public')));
 
 app.get('/', Auth.createSession, (req, res, next) => {
-  /**
-   * Aim to remove Auth.createSession from line 19 & call below
-   * var isLoggedIn = models.Sessions.isLoggedIn(req.session);
-   * if (!isLoggedIn) {
-   *   res.redirect('/login');
-   * }
-   * Auth.createSession(req, res, next).then(() => {
-   *   res.render('index');
-   *   next();
-   * });
-   * */
-  res.render('index');
-  next();
+  // Aim to remove Auth.createSession from line 19 & call below
+  var isLoggedIn = models.Sessions.isLoggedIn(req.session);
+  if (!isLoggedIn) {
+    res.redirect('/login');
+    next();
+  } else {
+    res.render('index');
+    next();
+  }
 });
 
-app.get('/create', (req, res) => {
-  res.render('index');
+app.get('/login', (req, res) => {
+  res.render('login');
 });
 
-app.get('/links', (req, res, next) => {
-  models.Links.getAll()
-    .then((links) => {
-      res.status(200).send(links);
-    })
-    .error((error) => {
-      res.status(500).send(error);
-    });
+app.get('/create', Auth.createSession, (req, res, next) => {
+  // Aim to remove Auth.createSession from line 19 & call below
+  var isLoggedIn = models.Sessions.isLoggedIn(req.session);
+  if (!isLoggedIn) {
+    res.redirect('/login');
+    next();
+  } else {
+    res.render('index');
+    next();
+  }
+});
+
+app.get('/links', Auth.createSession, (req, res, next) => {
+  var isLoggedIn = models.Sessions.isLoggedIn(req.session);
+  if (!isLoggedIn) {
+    res.redirect('/login');
+    next();
+  } else {
+    models.Links.getAll()
+      .then((links) => {
+        res.status(200).send(links);
+      })
+      .error((error) => {
+        res.status(500).send(error);
+      });
+  }
 });
 
 app.post('/links', (req, res, next) => {
