@@ -112,6 +112,7 @@ app.post('/signup', Auth.createSession, (req, res, next) => {
         .then((stat) => {
           // If successful session update then updated session userId cookie
           if (stat.affectedRows) {
+            req.session.user = { username: req.body.username };
             req.session.userId = results.insertId;
           }
           res.redirect('/');
